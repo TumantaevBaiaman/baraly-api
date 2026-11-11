@@ -16,8 +16,9 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+    # Только с этой машины: база не должна быть доступна из интернета.
     ports:
-      - "${POSTGRES_HOST_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -27,8 +28,8 @@ services:
       retries: 10
 
   minio:
-    # Официальные образы MinIO больше не публикуются в Docker Hub и quay.io;
-    # используется образ, уже скачанный на этой машине.
+    # Официальные образы MinIO больше не публикуются в Docker Hub и quay.io:
+    # образ переносят на машину командами docker save / docker load (см. README).
     image: minio/minio:latest
     pull_policy: never
     command: ["server", "/data", "--console-address", ":9001"]
@@ -36,8 +37,10 @@ services:
       MINIO_ROOT_USER: ${S3_ACCESS_KEY}
       MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
     ports:
+      # Порт 9000 отдаёт картинки, он должен быть доступен браузерам.
       - "${MINIO_HOST_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_HOST_PORT:-9001}:9001"
+      # Консоль администрирования — только с этой машины (на сервере через SSH-туннель).
+      - "127.0.0.1:${MINIO_CONSOLE_HOST_PORT:-9001}:9001"
     volumes:
       - minio_data:/data
     healthcheck:
